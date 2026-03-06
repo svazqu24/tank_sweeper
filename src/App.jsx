@@ -63,6 +63,7 @@ const TankGame = () => {
       pos = { x, y };
     } while (
       (pos.x === 0 && pos.y === 4) ||
+      (Math.abs(pos.x - 0) + Math.abs(pos.y - 4) < 4) ||
       mines.some((m) => m.x === pos.x && m.y === pos.y)
     );
     return pos;
@@ -260,7 +261,7 @@ const TankGame = () => {
       {/* Header — fixed height */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 16px', borderBottom: '2px solid #2a9d8f' }}>
         <div style={{ fontSize: '20px', fontWeight: '600', color: '#fef08a' }}>Idea by Sam</div>
-        <div style={{ display: 'flex', gap: '16px', fontSize: '24px', fontWeight: '700', color: '#fef08a' }}>
+        <div style={{ display: 'flex', gap: '16px', fontSize: '22px', fontWeight: '700', color: '#fef08a' }}>
           <span>Level: {gameState.level}</span>
           <span>Moves: {gameState.moves}</span>
           <span>Best: {highScore}</span>
