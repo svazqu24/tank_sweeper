@@ -50,10 +50,24 @@ const GRID_SIZE = { width: 8, height: 8 };
 
 const TankGame = () => {
   const [showInstructions, setShowInstructions] = useState(false);
+  const [seenInstructions, setSeenInstructions] = useState(() => {
+    return !!localStorage.getItem('tankGameSeenInstructions');
+  });
   const [highScore, setHighScore] = useState(() => {
     const saved = localStorage.getItem('tankGameHighScore');
     return saved ? parseInt(saved, 10) : 1;
   });
+  const [highScoreDate, setHighScoreDate] = useState(() => {
+    return localStorage.getItem('tankGameHighScoreDate') || null;
+  });
+
+  useEffect(() => {
+    if (!seenInstructions) {
+      setShowInstructions(true);
+      setSeenInstructions(true);
+      localStorage.setItem('tankGameSeenInstructions', 'true');
+    }
+  }, []);
 
   const getRandomFlagPos = useCallback((mines) => {
     let pos;
@@ -108,7 +122,8 @@ const TankGame = () => {
       const x = Math.floor(Math.random() * (GRID_SIZE.width - 2)) + 1;
       const y = Math.floor(Math.random() * GRID_SIZE.height);
       if (
-        (x === 0 && y === 4) ||
+        (x === 0 && y === 4) ||  // tank start
+        (x === 1 && y === 4) ||  // cell directly in front of tank
         (x === flagPos.x && y === flagPos.y) ||
         mines.some((m) => m.x === x && m.y === y)
       ) continue;
@@ -136,7 +151,12 @@ const TankGame = () => {
     });
     setHighScore(prev => {
       const next = Math.max(prev, level);
-      if (next > prev) localStorage.setItem('tankGameHighScore', next.toString());
+      if (next > prev) {
+        const date = new Date().toLocaleDateString();
+        localStorage.setItem('tankGameHighScore', next.toString());
+        localStorage.setItem('tankGameHighScoreDate', date);
+        setHighScoreDate(date);
+      }
       return next;
     });
   }, [getRandomFlagPos]);
@@ -145,7 +165,7 @@ const TankGame = () => {
 
   useEffect(() => {
     let intervalId;
-    if (gameState.level >= 5 && !gameState.gameOver && !gameState.won) {
+    if (gameState.level >= 10 && !gameState.gameOver && !gameState.won) {
       intervalId = setInterval(() => {
         setGameState((prev) => ({ ...prev, flagPos: getRandomFlagPos(prev.mines) }));
       }, 8000);
@@ -217,12 +237,23 @@ const TankGame = () => {
         const adjacentToTank =
           Math.abs(gameState.tankPos.x - x) <= 1 &&
           Math.abs(gameState.tankPos.y - y) <= 1;
-        const showMineCount = !showMine && !isEnd && mineCount > 0 && (isVisited || adjacentToTank);
+
+        // Fog of war: only active from level 5+
+        const fogActive = gameState.level >= 5;
+        const isRevealed = isVisited || adjacentToTank || isTank;
+        const inFog = fogActive && !isRevealed && !showMine;
+
+        // Show mine counts on visited cells; before fog kicks in also show adjacent
+        const showMineCount = !showMine && !isEnd && mineCount > 0 && (isVisited || (!fogActive && adjacentToTank));
+
         const cellClasses = [
           'border', 'flex', 'items-center', 'justify-center', 'relative',
-          isVisited ? 'bg-orange-200 border-orange-400' : 'bg-yellow-200 border-yellow-300',
-          isTank ? 'bg-yellow-200' : '',
-          isEnd ? 'bg-teal-500' : '',
+          inFog
+            ? 'bg-gray-700 border-gray-600'
+            : isVisited
+              ? 'bg-orange-200 border-orange-400'
+              : 'bg-yellow-200 border-yellow-300',
+          isEnd && (!fogActive || isRevealed) ? 'bg-teal-500' : '',
         ].filter(Boolean).join(' ');
         cells.push(
           <div key={cellKey} className={cellClasses}>
@@ -230,7 +261,7 @@ const TankGame = () => {
             <div className="relative w-full h-full flex items-center justify-center">
               {isTank && <TankIcon direction={gameState.tankDirection} />}
               {showMine && <MineIcon />}
-              {isEnd && <FlagIcon />}
+              {isEnd && (!fogActive || isRevealed) && <FlagIcon />}
             </div>
             {showMineCount && (
               <div className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full bg-gray-700 text-white font-bold text-xs">
@@ -264,7 +295,10 @@ const TankGame = () => {
         <div style={{ display: 'flex', gap: '16px', fontSize: '22px', fontWeight: '700', color: '#fef08a' }}>
           <span>Level: {gameState.level}</span>
           <span>Moves: {gameState.moves}</span>
-          <span>Best: {highScore}</span>
+          <span>
+            Best: {highScore}
+            {highScoreDate && <span style={{ fontSize: '11px', fontWeight: '400', marginLeft: '4px', opacity: 0.7 }}>({highScoreDate})</span>}
+          </span>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button type="button" onClick={() => setShowInstructions(true)}
@@ -358,13 +392,13 @@ const TankGame = () => {
       {showInstructions && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 50 }}>
           <div style={{ background: '#374151', padding: '24px', borderRadius: '12px', maxWidth: '400px', width: '100%', color: '#fef08a' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '16px' }}>How to Play</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '16px', textAlign: 'center' }}>How to Play</h2>
             <ul style={{ lineHeight: '2', marginBottom: '16px', paddingLeft: '4px', listStyle: 'none' }}>
-              <li>• Use arrow keys, WASD, or the on-screen D-pad to move your tank</li>
+              <li>• Use arrow keys or WASD to move your tank</li>
               <li>• Reach the flag to complete each level</li>
-              <li>• Numbers show how many mines are nearby</li>
-              <li>• After level 5, the flag will move every 8 seconds</li>
-              <li>• Each level adds more mines (up to 12)</li>
+              <li>• Avoid mines — numbers tell you how close they are</li>
+              <li>• The map gets darker as levels increase</li>
+              <li>• Watch out — the flag may start to move!</li>
               <li>• Try to reach the highest level possible!</li>
             </ul>
             <button type="button" onClick={() => setShowInstructions(false)}
