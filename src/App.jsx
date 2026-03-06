@@ -50,7 +50,10 @@ const GRID_SIZE = { width: 8, height: 8 };
 
 const TankGame = () => {
   const [showInstructions, setShowInstructions] = useState(false);
-  const [highScore, setHighScore] = useState(1);
+  const [highScore, setHighScore] = useState(() => {
+    const saved = localStorage.getItem('tankGameHighScore');
+    return saved ? parseInt(saved, 10) : 1;
+  });
 
   const getRandomFlagPos = useCallback((mines) => {
     let pos;
@@ -130,11 +133,11 @@ const TankGame = () => {
       visitedCells: new Set(['0,4']),
       trackMarks: new Map(),
     });
-    setHighScore(prev => {
-      const next = Math.max(prev, level);
-      return next;
-    });
-  }, [getRandomFlagPos]);
+    if (level > highScore) {
+      setHighScore(level);
+      localStorage.setItem('tankGameHighScore', level.toString());
+    }
+  }, [getRandomFlagPos, highScore]);
 
   useEffect(() => { initializeLevel(1); }, []);
 
