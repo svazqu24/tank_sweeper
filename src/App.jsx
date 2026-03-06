@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
-// [Previous icon components remain the same]
 const TankIcon = ({ direction = 'right' }) => {
   const rotationDegrees = {
     up: 270,
@@ -61,23 +60,27 @@ const FlagIcon = () => (
   </svg>
 );
 
+const GRID_SIZE = { width: 8, height: 8 };
+
 const TankGame = () => {
-  const GRID_SIZE = { width: 8, height: 8 };
   const [showInstructions, setShowInstructions] = useState(false);
   const [highScore, setHighScore] = useState(() => {
     const saved = localStorage.getItem('tankGameHighScore');
     return saved ? parseInt(saved, 10) : 1;
   });
 
-  const getRandomFlagPos = (mines) => {
+  const getRandomFlagPos = useCallback((mines) => {
     let pos;
     do {
       const x = Math.floor(Math.random() * GRID_SIZE.width);
       const y = Math.floor(Math.random() * GRID_SIZE.height);
       pos = { x, y };
-    } while (pos.x === 0 && pos.y === 4);
+    } while (
+      (pos.x === 0 && pos.y === 4) ||
+      mines.some((m) => m.x === pos.x && m.y === pos.y)
+    );
     return pos;
-  };
+  }, []);
 
   const [gameState, setGameState] = useState({
     tankPos: { x: 0, y: 4 },
@@ -96,8 +99,8 @@ const TankGame = () => {
     let count = 0;
     const directions = [
       [-1, -1], [-1, 0], [-1, 1],
-      [0, -1],          [0, 1],
-      [1, -1],  [1, 0], [1, 1],
+      [0, -1],           [0, 1],
+      [1, -1],  [1, 0],  [1, 1],
     ];
     directions.forEach(([dx, dy]) => {
       const newX = x + dx;
@@ -117,14 +120,14 @@ const TankGame = () => {
 
   const generateMines = (level, flagPos) => {
     const mines = [];
-    const mineCount = Math.min(2 + (level - 1) * 2, 12); // Increased max mines to 12
+    const mineCount = Math.min(2 + (level - 1) * 2, 12);
     while (mines.length < mineCount) {
       const x = Math.floor(Math.random() * (GRID_SIZE.width - 2)) + 1;
       const y = Math.floor(Math.random() * GRID_SIZE.height);
       if (
-        (x === 0 && y === 4) || // Don't spawn on start
-        (x === flagPos.x && y === flagPos.y) || // Don't spawn on flag
-        mines.some((m) => m.x === x && m.y === y) // Don't spawn on other mines
+        (x === 0 && y === 4) ||
+        (x === flagPos.x && y === flagPos.y) ||
+        mines.some((m) => m.x === x && m.y === y)
       ) {
         continue;
       }
@@ -133,13 +136,13 @@ const TankGame = () => {
     return mines;
   };
 
-  const initializeLevel = (level) => {
+  const initializeLevel = useCallback((level) => {
     const flagPos =
       level < 5
         ? { x: GRID_SIZE.width - 1, y: 4 }
         : getRandomFlagPos([]);
     const mines = generateMines(level, flagPos);
-    
+
     setGameState({
       tankPos: { x: 0, y: 4 },
       tankDirection: 'right',
@@ -153,17 +156,14 @@ const TankGame = () => {
       trackMarks: new Map(),
     });
 
-    // Update high score if current level is higher
     if (level > highScore) {
       setHighScore(level);
       localStorage.setItem('tankGameHighScore', level.toString());
     }
-  };
+  }, [getRandomFlagPos, highScore]);
 
-  // [Previous useEffect hooks remain the same]
-  useEffect(() => {
-    initializeLevel(1);
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { initializeLevel(1); }, []);
 
   useEffect(() => {
     let intervalId;
@@ -178,92 +178,61 @@ const TankGame = () => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [gameState.level, gameState.gameOver, gameState.won]);
+  }, [gameState.level, gameState.gameOver, gameState.won, getRandomFlagPos]);
+
+  const handleMove = useCallback((direction) => {
+    setGameState((prev) => {
+      if (prev.gameOver || prev.won) return prev;
+
+      const newPos = { ...prev.tankPos };
+      let moved = false;
+
+      if (direction === 'up' && newPos.y > 0) { newPos.y -= 1; moved = true; }
+      else if (direction === 'down' && newPos.y < GRID_SIZE.height - 1) { newPos.y += 1; moved = true; }
+      else if (direction === 'left' && newPos.x > 0) { newPos.x -= 1; moved = true; }
+      else if (direction === 'right' && newPos.x < GRID_SIZE.width - 1) { newPos.x += 1; moved = true; }
+
+      if (!moved) return prev;
+
+      const oldCellKey = `${prev.tankPos.x},${prev.tankPos.y}`;
+      const newTrackMarks = new Map(prev.trackMarks);
+      newTrackMarks.set(oldCellKey, direction);
+
+      const newVisitedCells = new Set(prev.visitedCells);
+      const newCellKey = `${newPos.x},${newPos.y}`;
+      newVisitedCells.add(newCellKey);
+
+      if (prev.mines.some((mine) => mine.x === newPos.x && mine.y === newPos.y)) {
+        return { ...prev, gameOver: true, visitedCells: newVisitedCells, trackMarks: newTrackMarks };
+      }
+
+      if (newPos.x === prev.flagPos.x && newPos.y === prev.flagPos.y) {
+        return { ...prev, won: true, visitedCells: newVisitedCells, trackMarks: newTrackMarks };
+      }
+
+      return {
+        ...prev,
+        tankPos: newPos,
+        tankDirection: direction,
+        moves: prev.moves + 1,
+        visitedCells: newVisitedCells,
+        trackMarks: newTrackMarks,
+      };
+    });
+  }, []);
 
   useEffect(() => {
     const handleKeyPress = (e) => {
-      setGameState((prev) => {
-        if (prev.gameOver || prev.won) return prev;
-
-        const newPos = { ...prev.tankPos };
-        let newDirection = prev.tankDirection;
-        let moved = false;
-
-        switch (e.key) {
-          case 'ArrowUp':
-            if (newPos.y > 0) {
-              newPos.y -= 1;
-              newDirection = 'up';
-              moved = true;
-            }
-            break;
-          case 'ArrowDown':
-            if (newPos.y < GRID_SIZE.height - 1) {
-              newPos.y += 1;
-              newDirection = 'down';
-              moved = true;
-            }
-            break;
-          case 'ArrowLeft':
-            if (newPos.x > 0) {
-              newPos.x -= 1;
-              newDirection = 'left';
-              moved = true;
-            }
-            break;
-          case 'ArrowRight':
-            if (newPos.x < GRID_SIZE.width - 1) {
-              newPos.x += 1;
-              newDirection = 'right';
-              moved = true;
-            }
-            break;
-          default:
-            return prev;
-        }
-
-        if (!moved) return prev;
-
-        const oldCellKey = `${prev.tankPos.x},${prev.tankPos.y}`;
-        const newTrackMarks = new Map(prev.trackMarks);
-        newTrackMarks.set(oldCellKey, newDirection);
-
-        const newVisitedCells = new Set(prev.visitedCells);
-        const newCellKey = `${newPos.x},${newPos.y}`;
-        newVisitedCells.add(newCellKey);
-
-        if (prev.mines.some((mine) => mine.x === newPos.x && mine.y === newPos.y)) {
-          return {
-            ...prev,
-            gameOver: true,
-            visitedCells: newVisitedCells,
-            trackMarks: newTrackMarks,
-          };
-        }
-
-        if (newPos.x === prev.flagPos.x && newPos.y === prev.flagPos.y) {
-          return {
-            ...prev,
-            won: true,
-            visitedCells: newVisitedCells,
-            trackMarks: newTrackMarks,
-          };
-        }
-
-        return {
-          ...prev,
-          tankPos: newPos,
-          tankDirection: newDirection,
-          moves: prev.moves + 1,
-          visitedCells: newVisitedCells,
-          trackMarks: newTrackMarks,
-        };
-      });
+      const keyMap = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+      const direction = keyMap[e.key];
+      if (!direction) return;
+      e.preventDefault();
+      handleMove(direction);
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
+  }, [handleMove]);
 
   const renderGrid = () => {
     const grid = [];
@@ -353,7 +322,7 @@ const TankGame = () => {
           New Game
         </button>
       </div>
-      
+
       <div className="flex flex-col items-center gap-6 p-8 rounded-lg w-full">
         <div className="flex gap-4 text-lg font-bold text-yellow-200">
           <div>Level: {gameState.level}</div>
@@ -393,8 +362,33 @@ const TankGame = () => {
           </div>
         )}
 
+        <div className="flex flex-col items-center gap-1">
+          <button
+            type="button"
+            onClick={() => handleMove('up')}
+            className="w-14 h-14 bg-gray-600 text-white text-2xl rounded-lg hover:bg-gray-500 active:bg-gray-400 transition-colors select-none"
+          >▲</button>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => handleMove('left')}
+              className="w-14 h-14 bg-gray-600 text-white text-2xl rounded-lg hover:bg-gray-500 active:bg-gray-400 transition-colors select-none"
+            >◀</button>
+            <div className="w-14 h-14" />
+            <button
+              type="button"
+              onClick={() => handleMove('right')}
+              className="w-14 h-14 bg-gray-600 text-white text-2xl rounded-lg hover:bg-gray-500 active:bg-gray-400 transition-colors select-none"
+            >▶</button>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleMove('down')}
+            className="w-14 h-14 bg-gray-600 text-white text-2xl rounded-lg hover:bg-gray-500 active:bg-gray-400 transition-colors select-none"
+          >▼</button>
+        </div>
         <div className="text-sm text-yellow-200">
-          Use arrow keys to move the tank
+          Use arrow keys or buttons to move the tank
         </div>
       </div>
 
