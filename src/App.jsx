@@ -6,11 +6,14 @@ const ANIMATION_STYLES = `
     60% { transform: scale(1.3) rotate(5deg); opacity: 1; }
     100% { transform: scale(1) rotate(0deg); opacity: 1; }
   }
-  @keyframes tankSlide {
-    from { opacity: 0.7; }
-    to { opacity: 1; }
+  @keyframes shake {
+    10%, 90% { transform: translate3d(-4px, 0, 0); }
+    20%, 80% { transform: translate3d(8px, 2px, 0); }
+    30%, 50%, 70% { transform: translate3d(-8px, -2px, 0); }
+    40%, 60% { transform: translate3d(8px, 2px, 0); }
   }
   .mine-pop { animation: minePop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+  .screen-shake { animation: shake 1.2s cubic-bezier(.36,.07,.19,.97) both; }
 `;
 
 // Confetti canvas component
@@ -67,6 +70,71 @@ const Confetti = ({ active }) => {
   return (
     <canvas ref={canvasRef} style={{
       position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 40,
+    }} />
+  );
+};
+
+// Smoke rising component for game over
+const Smoke = ({ active, tankPos }) => {
+  const canvasRef = useRef(null);
+  const animRef = useRef(null);
+  const particlesRef = useRef([]);
+
+  useEffect(() => {
+    if (!active) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    const spawnSmoke = () => {
+      const cellW = canvas.width / 8;
+      const cellH = canvas.height / 8;
+      const originX = tankPos ? (tankPos.x + 0.5) * cellW : canvas.width / 2;
+      const originY = tankPos ? (tankPos.y + 0.5) * cellH : canvas.height / 2;
+      return {
+        x: originX + (Math.random() - 0.5) * 20,
+        y: originY + (Math.random() - 0.5) * 10,
+        size: Math.random() * 6 + 2,
+        speed: Math.random() * 1.5 + 0.5,
+        drift: (Math.random() - 0.5) * 1.5,
+        opacity: Math.random() * 0.25 + 0.1,
+        life: 1,
+        decay: Math.random() * 0.003 + 0.001,
+        blur: Math.random() * 4 + 2,
+      };
+    };
+
+    particlesRef.current = Array.from({ length: 30 }, spawnSmoke);
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particlesRef.current.forEach((p, i) => {
+        ctx.save();
+        ctx.filter = `blur(${p.blur * p.life}px)`;
+        ctx.globalAlpha = p.opacity * p.life;
+        ctx.fillStyle = `hsl(0, 0%, ${30 + (1 - p.life) * 40}%)`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        p.y -= p.speed;
+        p.x += p.drift;
+        p.size += 0.3;
+        p.life -= p.decay;
+        if (p.life <= 0) particlesRef.current[i] = spawnSmoke();
+      });
+      animRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => cancelAnimationFrame(animRef.current);
+  }, [active]);
+
+  if (!active) return null;
+  return (
+    <canvas ref={canvasRef} style={{
+      position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1,
     }} />
   );
 };
@@ -398,6 +466,8 @@ const TankGame = () => {
         
         {/* Grid wrapper — position:relative so tank overlay works */}
         <div
+          key={gameState.gameOver ? 'shaking' : 'still'}
+          className={gameState.gameOver ? 'screen-shake' : ''}
           style={{
             width: 'min(calc(100vw - 24px), calc(100vh - 80px))',
             height: 'min(calc(100vw - 24px), calc(100vh - 80px))',
@@ -457,12 +527,15 @@ const TankGame = () => {
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             gap: '12px',
           }}>
-            <div style={{ fontSize: '2rem', fontWeight: '800', color: '#ef4444' }}>💥 Game Over!</div>
-            <div style={{ color: '#fef08a', fontSize: '1rem' }}>You reached Level {gameState.level}</div>
-            <button type="button" onClick={() => initializeLevel(1)}
-              style={{ padding: '10px 24px', background: '#2a9d8f', color: 'white', fontWeight: '700', fontSize: '1rem', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
-              Try Again
-            </button>
+            <Smoke active={gameState.gameOver} tankPos={gameState.tankPos} />
+            <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{ fontSize: '2rem', fontWeight: '800', color: '#ef4444' }}>💥 Game Over!</div>
+              <div style={{ color: '#fef08a', fontSize: '1rem' }}>You reached Level {gameState.level}</div>
+              <button type="button" onClick={() => initializeLevel(1)}
+                style={{ padding: '10px 24px', background: '#2a9d8f', color: 'white', fontWeight: '700', fontSize: '1rem', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
+                Try Again
+              </button>
+            </div>
           </div>
         )}
 
