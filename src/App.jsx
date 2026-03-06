@@ -281,15 +281,33 @@ const TankGame = () => {
       {/* Main content — takes all remaining height */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', minHeight: 0, position: 'relative' }}>
         
-        {/* Square grid — sized to fit within available space */}
-        <div style={{
-          width: 'min(calc(100vw - 24px), calc(100vh - 80px))',
-          height: 'min(calc(100vw - 24px), calc(100vh - 80px))',
-          border: '4px solid #2a9d8f',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-        }}>
+        {/* Square grid with swipe support */}
+        <div
+          style={{
+            width: 'min(calc(100vw - 24px), calc(100vh - 80px))',
+            height: 'min(calc(100vw - 24px), calc(100vh - 80px))',
+            border: '4px solid #2a9d8f',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+          }}
+          onTouchStart={(e) => {
+            const t = e.touches[0];
+            e.currentTarget._touchStart = { x: t.clientX, y: t.clientY };
+          }}
+          onTouchEnd={(e) => {
+            const start = e.currentTarget._touchStart;
+            if (!start) return;
+            const dx = e.changedTouches[0].clientX - start.x;
+            const dy = e.changedTouches[0].clientY - start.y;
+            if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+            if (Math.abs(dx) > Math.abs(dy)) {
+              handleMove(dx > 0 ? 'right' : 'left');
+            } else {
+              handleMove(dy > 0 ? 'down' : 'up');
+            }
+          }}
+        >
           <div style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${GRID_SIZE.width}, 1fr)`,
@@ -342,7 +360,7 @@ const TankGame = () => {
           <div style={{ background: '#374151', padding: '24px', borderRadius: '12px', maxWidth: '400px', width: '100%', color: '#fef08a' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '16px' }}>How to Play</h2>
             <ul style={{ lineHeight: '2', marginBottom: '16px', paddingLeft: '4px', listStyle: 'none' }}>
-              <li>• Use arrow keys or WASD to move your tank</li>
+              <li>• Use arrow keys, WASD, or the on-screen D-pad to move your tank</li>
               <li>• Reach the flag to complete each level</li>
               <li>• Numbers show how many mines are nearby</li>
               <li>• After level 5, the flag will move every 8 seconds</li>
