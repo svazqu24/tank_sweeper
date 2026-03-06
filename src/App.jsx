@@ -133,11 +133,12 @@ const TankGame = () => {
       visitedCells: new Set(['0,4']),
       trackMarks: new Map(),
     });
-    if (level > highScore) {
-      setHighScore(level);
-      localStorage.setItem('tankGameHighScore', level.toString());
-    }
-  }, [getRandomFlagPos, highScore]);
+    setHighScore(prev => {
+      const next = Math.max(prev, level);
+      if (next > prev) localStorage.setItem('tankGameHighScore', next.toString());
+      return next;
+    });
+  }, [getRandomFlagPos]);
 
   useEffect(() => { initializeLevel(1); }, []);
 
@@ -186,7 +187,11 @@ const TankGame = () => {
 
   useEffect(() => {
     const handleKeyPress = (e) => {
-      const keyMap = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+      const keyMap = {
+        ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+        w: 'up', s: 'down', a: 'left', d: 'right',
+        W: 'up', S: 'down', A: 'left', D: 'right',
+      };
       const direction = keyMap[e.key];
       if (!direction) return;
       e.preventDefault();
@@ -253,20 +258,20 @@ const TankGame = () => {
     <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#1f2937', overflow: 'hidden' }}>
       
       {/* Header — fixed height */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderBottom: '2px solid #2a9d8f' }}>
-        <div style={{ fontSize: '15px', fontWeight: '600', color: '#fef08a' }}>Idea by Sam</div>
-        <div style={{ display: 'flex', gap: '16px', fontSize: '15px', fontWeight: '700', color: '#fef08a' }}>
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 16px', borderBottom: '2px solid #2a9d8f' }}>
+        <div style={{ fontSize: '12px', fontWeight: '600', color: '#fef08a' }}>Idea by Sam</div>
+        <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: '700', color: '#fef08a' }}>
           <span>Level: {gameState.level}</span>
           <span>Moves: {gameState.moves}</span>
           <span>Best: {highScore}</span>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button type="button" onClick={() => setShowInstructions(true)}
-            style={{ padding: '4px 12px', background: '#eab308', color: 'white', fontWeight: '700', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
+            style={{ padding: '4px 10px', background: '#eab308', color: 'white', fontWeight: '600', fontSize: '12px', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
             Instructions
           </button>
           <button type="button" onClick={() => initializeLevel(1)}
-            style={{ padding: '4px 12px', background: '#2a9d8f', color: 'white', fontWeight: '700', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
+            style={{ padding: '4px 10px', background: '#2a9d8f', color: 'white', fontWeight: '600', fontSize: '12px', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
             New Game
           </button>
         </div>
@@ -336,7 +341,7 @@ const TankGame = () => {
           <div style={{ background: '#374151', padding: '24px', borderRadius: '12px', maxWidth: '400px', width: '100%', color: '#fef08a' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '16px' }}>How to Play</h2>
             <ul style={{ lineHeight: '2', marginBottom: '16px', paddingLeft: '4px', listStyle: 'none' }}>
-              <li>• Use arrow keys or the D-pad to move your tank</li>
+              <li>• Use arrow keys or WASD to move your tank</li>
               <li>• Reach the flag to complete each level</li>
               <li>• Numbers show how many mines are nearby</li>
               <li>• After level 5, the flag will move every 8 seconds</li>
