@@ -1,5 +1,5 @@
 # Tank Game
-A React-based tank navigation game built with Vite and Tailwind CSS. Navigate your tank to the flag while avoiding mines in an increasingly challenging minesweeper-style game.
+A React-based tank navigation game built with Vite and Tailwind CSS. Navigate your tank to the flag while avoiding mines in an increasingly challenging minesweeper-style game. A small passion project of mine started back in Sophmore year of college. **Made with Claude**
 
 ## Play Online
 🎮 **[svazqu24.github.io/tank_game](https://svazqu24.github.io/tank_game/)**
