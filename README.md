@@ -1,64 +1,106 @@
-# Tank Sweeper
-A React-based tank navigation game built with Vite and Tailwind CSS. Navigate your tank to the flag while avoiding mines in an increasingly challenging minesweeper-style game. A small passion project of mine started back in Sophmore year of college. **Made with Claude**
+# 🎮 Tank Sweeper
+
+A minesweeper-meets-tank-game where you navigate a battlefield, avoid hidden mines, and reach the flag to advance. Levels get harder, the fog rolls in, and the flag starts moving — how far can you go?
+
+A small passion project of mine started back in Sophmore year of college. **Co-created with Claude**
 
 ## Play Online
-🎮 **[svazqu24.github.io/tank_game](https://svazqu24.github.io/tank_sweeper/)**
+🕹️ **[svazqu24.github.io/tank_sweeper](https://svazqu24.github.io/tank_sweeper/)**
+
+---
 
 ## Features
-- Progressive difficulty with increasing mine counts up to 12
-- Arrow keys, WASD, or swipe gestures to move your tank
-- Mine detection showing nearby mine counts on visited/adjacent cells
-- Flag spawns a minimum of 4 steps away from the tank
-- Flag teleports randomly after level 5 (every 8 seconds)
-- High score tracking with local storage
-- Responsive layout that fills any screen size
+
+### Gameplay
+- Move your tank with **arrow keys**, **WASD**, or **swipe** gestures on mobile
+- Reach the **flag** to complete each level — avoid all mines along the way
+- Mine count starts at 2 and increases by 2 each level, capped at 12
+- **Levels 1–4**: Flag is fixed on the right side of the board
+- **Level 5+**: Fog of war kicks in — only visited and adjacent cells are visible
+- **Level 10+**: The flag relocates every 8 seconds, keeping you on your toes
+
+### Difficulty Modes
+- 🟢 **Easy** — Mine count badges show how many mines are adjacent to visited cells
+- 🔴 **Hard** — No numbers. Only a red pulse warning when you're standing near a mine
+
+### Progression & Unlocks
+- Separate **high score tracking** for Easy and Hard modes, saved across sessions
+- Every **5 levels** (up to 50) and every **10 levels** (50–100) unlocks a new color theme
+- 16 themes total — from Classic and Military to Amethyst, Obsidian, and the legendary **Prismatic** at level 100
+
+### Polish
+- Smooth tank movement with animated transitions
+- Tank track marks fade in behind you as you move
+- Screen shake on game over, mine explosion particles, and smoke effects
+- Confetti on level complete
+- Level wipe transition between stages
+- Share your score (including mode) directly from the game
+
+---
+
+## Color Theme Unlock Progression
+
+| Level | Theme       |   | Level | Theme       |
+|-------|-------------|---|-------|-------------|
+| 1     | Classic     |   | 50    | Golden      |
+| 5     | Military    |   | 60    | Deep Sea    |
+| 10    | Desert      |   | 70    | Blood Moon  |
+| 15    | Arctic      |   | 80    | Amethyst    |
+| 20    | Volcanic    |   | 90    | Obsidian    |
+| 25    | Night Ops   |   | 100   | Prismatic ✨ |
+| 30    | Jungle      |   |       |             |
+| 35    | Sand Storm  |   |       |             |
+| 40    | Bubblegum   |   |       |             |
+| 45    | Toxic       |   |       |             |
+
+---
+
+## How to Play
+1. Select **Easy** or **Hard** on the title screen
+2. Use **arrow keys**, **WASD**, or **swipe** to move your tank
+3. Navigate to the **flag** 🚩 to complete the level
+4. In Easy mode, numbers on visited cells show nearby mine counts
+5. In Hard mode, watch for the **red pulse** — it means danger is close
+6. After level 5, unvisited cells go dark
+7. After level 10, the flag starts moving every 8 seconds
+8. Hit a mine and it's game over — try to reach the highest level possible!
+
+---
 
 ## Quick Start
 
-### Development
 ```bash
 npm install
 npm run dev
 ```
-The game will be available at `http://localhost:5173/`
 
-### Production Build
+Available at `http://localhost:5173/`
+
 ```bash
-npm run build
+npm run build   # production build
+npm run preview # preview build locally
 ```
 
-### Preview Build
-```bash
-npm run preview
-```
-
-## How to Play
-1. Use **arrow keys**, **WASD**, or **swipe** on mobile to move your tank
-2. Navigate to the **flag** to complete each level
-3. Avoid **mines** — hitting one ends the game
-4. Numbers show how many mines are nearby on visited or adjacent cells
-5. After level 5, the flag randomly moves every 8 seconds
-6. Each level adds 2 more mines (up to 12 total)
-7. Try to reach the highest level possible!
-
-## Game Mechanics
-- **Levels 1–4**: Flag is fixed on the right side of the board
-- **Level 5+**: Flag spawns randomly and moves every 8 seconds
-- **Flag distance**: Always spawns at least 4 steps away from the tank's start
-- **Mines**: 2 on level 1, +2 per level, capped at 12
-- **Scoring**: High score is the highest level reached, saved across sessions
+---
 
 ## Project Structure
+
 ```
 src/
-├── TankGame.jsx     - Main game component and all game logic
-├── App.jsx          - React entry point wrapper
-├── main.jsx         - React DOM entry point
-└── index.css        - Tailwind CSS configuration
+├── App.jsx        - Main game component (all logic, state, rendering)
+├── main.jsx       - React DOM entry point
+└── index.css      - Tailwind CSS configuration
 public/
 └── tank-canon-svgrepo-com.svg  - Favicon
 .github/
 └── workflows/
-    └── deploy.yml   - GitHub Actions auto-deploy to GitHub Pages
-vite.config.js       - Vite config with GitHub Pages base path
+    └── deploy.yml - GitHub Actions auto-deploy to GitHub Pages
+vite.config.js     - Vite config with GitHub Pages base path
 ```
+
+---
+
+## Tech Stack
+- [React](https://react.dev/) + [Vite](https://vitejs.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- GitHub Pages via GitHub Actions
