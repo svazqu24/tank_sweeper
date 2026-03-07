@@ -156,7 +156,8 @@ const Smoke = ({ active, tankPos }) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       particlesRef.current.forEach((p, i) => {
         ctx.save();
-        ctx.filter = `blur(${p.blur * p.life}px)`;
+        ctx.shadowBlur = p.blur * p.life * 6;
+        ctx.shadowColor = `hsl(0, 0%, ${30 + (1 - p.life) * 40}%)`;
         ctx.globalAlpha = p.opacity * p.life;
         ctx.fillStyle = `hsl(0, 0%, ${30 + (1 - p.life) * 40}%)`;
         ctx.beginPath();
@@ -341,11 +342,12 @@ const TankGame = () => {
   useEffect(() => {
     if (!gameState.gameOver && !gameState.won) { setRevealedMines(new Set()); setExploding(false); return; }
     if (gameState.gameOver) { setExploding(true); setExplodeKey(k => k + 1); }
-    gameState.mines.forEach((_, i) => {
+    const timers = gameState.mines.map((_, i) =>
       setTimeout(() => {
         setRevealedMines(prev => new Set([...prev, i]));
-      }, i * 120);
-    });
+      }, i * 120)
+    );
+    return () => timers.forEach(clearTimeout);
   }, [gameState.gameOver, gameState.won]);
 
   // Wipe transition on level complete
