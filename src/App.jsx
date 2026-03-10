@@ -22,6 +22,7 @@ const ANIMATION_STYLES = `
   }
   .flag-pulse { animation: flagPulse 1.8s ease-in-out infinite; }
   .danger-pulse { animation: dangerPulse 1.2s ease-in-out infinite; }
+  @keyframes trackFadeIn {
     from { opacity: 0; transform: scale(0.5); }
     to { opacity: 0.3; transform: scale(1); }
   }
@@ -531,14 +532,9 @@ const TankGame = () => {
     if (!gameState.gameOver && !gameState.won) { setRevealedMines(new Set()); setExploding(false); return; }
     if (gameState.gameOver) {
       setTimeout(() => { setExploding(true); setExplodeKey(k => k + 1); }, 16);
-      const audio = new Audio(`${import.meta.env.BASE_URL}Cat Laughing At You.mp3`);
-      audio.volume = 0.6;
-      audio.play().catch(() => {});
     }
     if (gameState.won) {
-      const audio = new Audio(`${import.meta.env.BASE_URL}yippee.mp3`);
-      audio.volume = 0.6;
-      audio.play().catch(() => {});
+      // sound effect goes here
     }
     const timers = gameState.mines.map((_, i) =>
       setTimeout(() => {
